@@ -11,7 +11,7 @@ is
       Level : Positive;
    end record;
 
-   procedure Insert (Sub_Tree : in out Tree_Ptr; V : Positive);
+   procedure Insert (Root : in out Tree_Ptr; V : Positive);
    procedure Print (Root : Tree_Ptr) with
       SPARK_Mode => Off;
 end AATree;

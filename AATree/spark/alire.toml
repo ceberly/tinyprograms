@@ -6,4 +6,4 @@ authors = ["Chris Eberly"]
 maintainers = ["Chris Eberly <ceberly@users.noreply.github.com>"]
 maintainers-logins = ["ceberly"]
 
-executables = ["spark"]
+executables = ["main"]
