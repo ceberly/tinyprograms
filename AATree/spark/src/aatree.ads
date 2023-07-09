@@ -1,17 +1,22 @@
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
 package AATree with
    SPARK_Mode => On
 is
-   type Tree;
-   type Tree_Ptr is access Tree;
+   type AATree;
+   type Tree_Ptr is access AATree;
 
-   type Tree is limited record
+   type AATree is limited record
       Key   : Positive;
       Left  : Tree_Ptr;
       Right : Tree_Ptr;
       Level : Positive;
    end record;
 
-   procedure Insert (Root : in out Tree_Ptr; V : Positive);
-   procedure Print (Root : Tree_Ptr) with
+   procedure Insert (Tree : in out Tree_Ptr; K : Positive);
+   procedure Skew (Tree : in out Tree_Ptr);
+   procedure Split (Tree : in out Tree_Ptr);
+
+   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) with
       SPARK_Mode => Off;
 end AATree;
