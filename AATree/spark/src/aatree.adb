@@ -45,6 +45,12 @@ is
       end if;
 
       if Tree.Right.Right.Level = Tree.Level then
+         -- Prevent level from overflowing.
+         -- not very good error handling :)
+         if Tree.Right.Level = Positive'Last then
+            return;
+         end if;
+
          L          := Tree.Right;
          Tree.Right := L.Left;
          L.Left     := Tree;
