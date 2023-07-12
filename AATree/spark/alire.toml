@@ -1,9 +1,9 @@
-name = "spark"
+name = "aatree"
 description = "Shiny new project"
 version = "0.1.0-dev"
 
 authors = ["Chris Eberly"]
 maintainers = ["Chris Eberly <ceberly@users.noreply.github.com>"]
 maintainers-logins = ["ceberly"]
-
-executables = ["main"]
+[[depends-on]]
+gnatprove = "^12.1.1"

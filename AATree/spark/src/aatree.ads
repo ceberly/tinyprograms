@@ -1,6 +1,6 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-package AATree with
+package Aatree with
    SPARK_Mode => On
 is
    type AATree;
@@ -13,10 +13,8 @@ is
       Level : Positive;
    end record;
 
-   procedure Insert (Tree : in out Tree_Ptr; K : Positive);
-   procedure Skew (Tree : in out Tree_Ptr);
-   procedure Split (Tree : in out Tree_Ptr);
+   procedure Insert (Tree : in out Tree_Ptr; K : Positive) with
+      Post => Tree /= null;
 
-   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) with
-      SPARK_Mode => Off;
-end AATree;
+   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String);
+end Aatree;

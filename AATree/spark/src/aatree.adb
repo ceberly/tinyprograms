@@ -1,30 +1,15 @@
 with Ada.Text_IO; use Ada.Text_IO;
 
-package body AATree with
+package body Aatree with
    SPARK_Mode => On
 is
-   procedure Insert (Tree : in out Tree_Ptr; K : Positive) is
-   begin
-      if Tree = null then
-         Tree :=
-           new AATree'(Key => K, Left => null, Right => null, Level => 1);
-         return;
-      end if;
-
-      if K < Tree.Key then
-         Insert (Tree.Left, K);
-      else
-         Insert (Tree.Right, K);
-      end if;
-
-      Skew (Tree);
-      Split (Tree);
-   end Insert;
-
-   procedure Skew (Tree : in out Tree_Ptr) is
+   procedure Skew (Tree : in out Tree_Ptr) with
+      Pre  => Tree /= null,
+      Post => Tree /= null
+   is
       L : Tree_Ptr;
    begin
-      if Tree = null or else Tree.Left = null then
+      if Tree.Left = null then
          return;
       end if;
 
@@ -36,11 +21,13 @@ is
       end if;
    end Skew;
 
-   procedure Split (Tree : in out Tree_Ptr) is
+   procedure Split (Tree : in out Tree_Ptr) with
+      Pre  => Tree /= null,
+      Post => Tree /= null
+   is
       L : Tree_Ptr;
    begin
-      if Tree = null or else Tree.Right = null or else Tree.Right.Right = null
-      then
+      if Tree.Right = null or else Tree.Right.Right = null then
          return;
       end if;
 
@@ -59,6 +46,28 @@ is
       end if;
    end Split;
 
+   procedure Insert (Tree : in out Tree_Ptr; K : Positive) is
+   begin
+      if Tree = null then
+         Tree :=
+           new AATree'(Key => K, Left => null, Right => null, Level => 1);
+         return;
+      end if;
+
+      --  duplicate keys are ignored in every example
+      --  I can find. -Chris
+      if K <= Tree.Key then
+         Insert (Tree.Left, K);
+      elsif K > Tree.Key then
+         Insert (Tree.Right, K);
+      else
+         return;
+      end if;
+
+      Skew (Tree);
+      Split (Tree);
+   end Insert;
+
    procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) with
       SPARK_Mode => Off
    is
@@ -73,4 +82,4 @@ is
 
       Print (Tree.Right, Space & "  ");
    end Print;
-end AATree;
+end Aatree;
