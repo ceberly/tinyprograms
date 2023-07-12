@@ -1,8 +1,19 @@
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Text_IO;           use Ada.Text_IO;
 
-package body Aatree with
+procedure Spark with
    SPARK_Mode => On
 is
+   type AATree;
+   type Tree_Ptr is access AATree;
+
+   type AATree is limited record
+      Key   : Positive;
+      Left  : Tree_Ptr;
+      Right : Tree_Ptr;
+      Level : Positive;
+   end record;
+
    procedure Skew (Tree : in out Tree_Ptr) with
       Pre  => Tree /= null,
       Post => Tree /= null
@@ -68,9 +79,7 @@ is
       Split (Tree);
    end Insert;
 
-   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) with
-      SPARK_Mode => Off
-   is
+   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) is
    begin
       if Tree = null then
          return;
@@ -82,4 +91,15 @@ is
 
       Print (Tree.Right, Space & "  ");
    end Print;
-end Aatree;
+
+   Root : Tree_Ptr := null;
+
+   Input : constant array (Positive range <>) of Integer :=
+     (123, 9_879_871, 8_187_123, 1_278_123, 187, 1_238_761, 2_847);
+begin
+   for Number in Input'Range loop
+      Insert (Root, Input (Number));
+   end loop;
+
+   Print (Root, To_Unbounded_String (""));
+end Spark;
