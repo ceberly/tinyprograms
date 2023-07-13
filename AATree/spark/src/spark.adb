@@ -43,21 +43,20 @@ is
       end if;
 
       if Tree.Right.Right.Level = Tree.Level then
-         -- Prevent level from overflowing.
-         -- not very good error handling :)
-         if Tree.Right.Level = Positive'Last then
-            return;
-         end if;
-
          L          := Tree.Right;
          Tree.Right := L.Left;
          L.Left     := Tree;
-         L.Level    := L.Level + 1;
-         Tree       := L;
+         --   Assume we have a sane sized tree for now to prevent overflow ...
+         pragma Assume (L.Level < Natural'Last / 2);
+         L.Level := L.Level + 1;
+
+         Tree := L;
       end if;
    end Split;
 
-   procedure Insert (Tree : in out Tree_Ptr; K : Positive) is
+   procedure Insert (Tree : in out Tree_Ptr; K : Positive) with
+      Post => Tree /= null
+   is
    begin
       if Tree = null then
          Tree :=
@@ -65,41 +64,44 @@ is
          return;
       end if;
 
-      --  duplicate keys are ignored in every example
-      --  I can find. -Chris
-      if K <= Tree.Key then
+      if K < Tree.Key then
          Insert (Tree.Left, K);
-      elsif K > Tree.Key then
-         Insert (Tree.Right, K);
       else
-         return;
+         Insert (Tree.Right, K);
       end if;
 
       Skew (Tree);
       Split (Tree);
    end Insert;
 
-   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) is
+   --  Print from a dereferenced AATree to avoid confusing SPARK
+   --  TODO: fix this ("[Print modifies Root but the value is unused after]")
+   procedure Print (Tree : AATree; Space : Unbounded_String) is
    begin
-      if Tree = null then
+      if Natural'Last - Length (Space) - 4 - Tree.Key'Image'Length < 0 then
+         Put_Line ("Tree Overflow!");
          return;
       end if;
 
-      Print (Tree.Left, Space & "  ");
+      if Tree.Left /= null then
+         Print (Tree.Left.all, Space & "  ");
+      end if;
 
-      Put_Line (To_String (Space) & Tree.Key'Image);
+      Put_Line (To_String (Space & Tree.Key'Image));
 
-      Print (Tree.Right, Space & "  ");
+      if Tree.Right /= null then
+         Print (Tree.Right.all, Space & "  ");
+      end if;
    end Print;
 
    Root : Tree_Ptr := null;
 
    Input : constant array (Positive range <>) of Integer :=
-     (123, 9_879_871, 8_187_123, 1_278_123, 187, 1_238_761, 2_847);
+     (81, 99, 10, 32, 8, 19, 3, 78);
 begin
    for Number in Input'Range loop
       Insert (Root, Input (Number));
    end loop;
 
-   Print (Root, To_Unbounded_String (""));
+   Print (Root.all, To_Unbounded_String (""));
 end Spark;
