@@ -1,18 +1,9 @@
-with System.Storage_Elements; use System.Storage_Elements;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
-
--- with Ada.Numerics.Discrete_Random;
 
 procedure Spark with
    SPARK_Mode => On
 is
-   -- subtype Random_Range is Integer range 1 .. 4_096;
-   -- package Random_Int is new Ada.Numerics.Discrete_Random (Random_Range);
-   -- use Random_Int;
-
-   -- G : Generator;
-
    type AATree;
    type Tree_Ptr is access AATree;
 
@@ -52,26 +43,25 @@ is
       end if;
 
       if Tree.Right.Right.Level = Tree.Level then
-         -- Prevent level from overflowing.
-         -- not very good error handling :)
-         if Tree.Right.Level = Positive'Last then
-            return;
-         end if;
-
          L          := Tree.Right;
          Tree.Right := L.Left;
          L.Left     := Tree;
-         L.Level    := L.Level + 1;
-         Tree       := L;
+         --   Assume we have a sane sized tree for now to prevent overflow ...
+         pragma Assume (L.Level < Natural'Last / 2);
+         L.Level := L.Level + 1;
+
+         Tree := L;
       end if;
    end Split;
 
-   function Insert (Tree : Tree_Ptr; K : Positive) return Tree_Ptr with
+   procedure Insert (Tree : in out Tree_Ptr; K : Positive) with
       Post => Tree /= null
    is
    begin
       if Tree = null then
-           return new AATree'(Key => K, Left => null, Right => null, Level => 1);
+         Tree :=
+           new AATree'(Key => K, Left => null, Right => null, Level => 1);
+         return;
       end if;
 
       if K < Tree.Key then
@@ -80,16 +70,16 @@ is
          Insert (Tree.Right, K);
       end if;
 
-      -- Skew (Tree);
-      -- Split (Tree);
+      Skew (Tree);
+      Split (Tree);
    end Insert;
 
-   -- Print from a dereferenced AATree to avoid confusing SPARK
-   -- TODO: fix this ("[Print modifies Root but the value is unused after]")
+   --  Print from a dereferenced AATree to avoid confusing SPARK
+   --  TODO: fix this ("[Print modifies Root but the value is unused after]")
    procedure Print (Tree : AATree; Space : Unbounded_String) is
    begin
       if Natural'Last - Length (Space) - 4 - Tree.Key'Image'Length < 0 then
-         -- tree overflow
+         Put_Line ("Tree Overflow!");
          return;
       end if;
 
@@ -107,19 +97,11 @@ is
    Root : Tree_Ptr := null;
 
    Input : constant array (Positive range <>) of Integer :=
-     (123, 9_879_871, 8_187_123, 1_278_123, 187, 1_238_761, 2_847);
+     (81, 99, 10, 32, 8, 19, 3, 78);
 begin
---   Reset (G);
---
---   for Number in 0 .. 1_0000 loop
---      Insert (Root, Random (G));
---   end loop;
---
-
    for Number in Input'Range loop
-      Root = Insert (Root, Input (Number));
-      -- Put_Line (To_Integer (Root'Address)'Image);
+      Insert (Root, Input (Number));
    end loop;
 
-   -- Print (Root.all, To_Unbounded_String (""));
+   Print (Root.all, To_Unbounded_String (""));
 end Spark;
