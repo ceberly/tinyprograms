@@ -1,9 +1,18 @@
+with System.Storage_Elements; use System.Storage_Elements;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
+
+-- with Ada.Numerics.Discrete_Random;
 
 procedure Spark with
    SPARK_Mode => On
 is
+   -- subtype Random_Range is Integer range 1 .. 4_096;
+   -- package Random_Int is new Ada.Numerics.Discrete_Random (Random_Range);
+   -- use Random_Int;
+
+   -- G : Generator;
+
    type AATree;
    type Tree_Ptr is access AATree;
 
@@ -57,7 +66,9 @@ is
       end if;
    end Split;
 
-   procedure Insert (Tree : in out Tree_Ptr; K : Positive) is
+   procedure Insert (Tree : in out Tree_Ptr; K : Positive) with
+      Post => Tree /= null
+   is
    begin
       if Tree = null then
          Tree :=
@@ -65,31 +76,34 @@ is
          return;
       end if;
 
-      --  duplicate keys are ignored in every example
-      --  I can find. -Chris
-      if K <= Tree.Key then
+      if K < Tree.Key then
          Insert (Tree.Left, K);
-      elsif K > Tree.Key then
-         Insert (Tree.Right, K);
       else
-         return;
+         Insert (Tree.Right, K);
       end if;
 
-      Skew (Tree);
-      Split (Tree);
+      -- Skew (Tree);
+      -- Split (Tree);
    end Insert;
 
-   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) is
+   -- Print from a dereferenced AATree to avoid confusing SPARK
+   -- TODO: fix this ("[Print modifies Root but the value is unused after]")
+   procedure Print (Tree : AATree; Space : Unbounded_String) is
    begin
-      if Tree = null then
+      if Natural'Last - Length (Space) - 4 - Tree.Key'Image'Length < 0 then
+         -- tree overflow
          return;
       end if;
 
-      Print (Tree.Left, Space & "  ");
+      if Tree.Left /= null then
+         Print (Tree.Left.all, Space & "  ");
+      end if;
 
-      Put_Line (To_String (Space) & Tree.Key'Image);
+      Put_Line (To_String (Space & Tree.Key'Image));
 
-      Print (Tree.Right, Space & "  ");
+      if Tree.Right /= null then
+         Print (Tree.Right.all, Space & "  ");
+      end if;
    end Print;
 
    Root : Tree_Ptr := null;
@@ -97,9 +111,17 @@ is
    Input : constant array (Positive range <>) of Integer :=
      (123, 9_879_871, 8_187_123, 1_278_123, 187, 1_238_761, 2_847);
 begin
+--   Reset (G);
+--
+--   for Number in 0 .. 1_0000 loop
+--      Insert (Root, Random (G));
+--   end loop;
+--
+
    for Number in Input'Range loop
       Insert (Root, Input (Number));
+      -- Put_Line (To_Integer (Root'Address)'Image);
    end loop;
 
-   Print (Root, To_Unbounded_String (""));
+   -- Print (Root.all, To_Unbounded_String (""));
 end Spark;
