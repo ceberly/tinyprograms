@@ -66,14 +66,12 @@ is
       end if;
    end Split;
 
-   procedure Insert (Tree : in out Tree_Ptr; K : Positive) with
+   function Insert (Tree : Tree_Ptr; K : Positive) return Tree_Ptr with
       Post => Tree /= null
    is
    begin
       if Tree = null then
-         Tree :=
-           new AATree'(Key => K, Left => null, Right => null, Level => 1);
-         return;
+           return new AATree'(Key => K, Left => null, Right => null, Level => 1);
       end if;
 
       if K < Tree.Key then
@@ -119,7 +117,7 @@ begin
 --
 
    for Number in Input'Range loop
-      Insert (Root, Input (Number));
+      Root = Insert (Root, Input (Number));
       -- Put_Line (To_Integer (Root'Address)'Image);
    end loop;
 
