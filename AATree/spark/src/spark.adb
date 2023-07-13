@@ -15,8 +15,9 @@ is
    end record;
 
    procedure Skew (Tree : in out Tree_Ptr) with
-      Pre  => Tree /= null,
-      Post => Tree /= null
+      Global => null,
+      Pre    => Tree /= null,
+      Post   => Tree /= null
    is
       L : Tree_Ptr;
    begin
@@ -33,8 +34,9 @@ is
    end Skew;
 
    procedure Split (Tree : in out Tree_Ptr) with
-      Pre  => Tree /= null,
-      Post => Tree /= null
+      Global => null,
+      Pre    => Tree /= null,
+      Post   => Tree /= null
    is
       L : Tree_Ptr;
    begin
@@ -55,7 +57,8 @@ is
    end Split;
 
    procedure Insert (Tree : in out Tree_Ptr; K : Positive) with
-      Post => Tree /= null
+      Global => null,
+      Post   => Tree /= null
    is
    begin
       if Tree = null then
