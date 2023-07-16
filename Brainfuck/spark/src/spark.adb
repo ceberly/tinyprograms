@@ -1,4 +1,5 @@
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO;      use Ada.Text_IO;
+with Ada.Command_Line; use Ada.Command_Line;
 
 procedure Spark with
    SPARK_Mode => On
@@ -6,8 +7,6 @@ is
    type Byte is mod 256;
    --  Also defines the max file size to be ~1MB
    type Instruction_Pointer_Type is mod 10**6;
-
-   File_Name : constant String := "../_tests/helloworld.bf";
 
    --   Impose some reasonable bounds for this example.
    subtype Data_Pointer_Type is Integer range 0 .. 10_000;
@@ -134,7 +133,16 @@ is
    --   Begin actual main :)
    Len : Instruction_Pointer_Type;
 begin
-   Read_Program (File_Name, Len);
+   if Argument_Count /= 1 then
+      Put_Line ("usage: ./spark <file>");
+      return;
+   end if;
+
+   declare
+      File_Name : constant String := Argument (1);
+   begin
+      Read_Program (File_Name, Len);
+   end;
 
    while Instruction_Pointer < Len loop
       Step;
