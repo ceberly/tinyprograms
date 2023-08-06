@@ -17,11 +17,15 @@ is
    end record;
 
    procedure Skew (Tree : in out Tree_Ptr) with
-      Pre  => Tree /= null and then Tree.Left /= null,
+      Pre  => Tree /= null,
       Post => Tree /= null
    is
       L : Tree_Ptr;
    begin
+      if Tree.Left = null or else Tree.Left.Level /= Tree.Level then
+         return;
+      end if;
+
       L         := Tree.Left;
       Tree.Left := L.Right;
       L.Right   := Tree;
@@ -30,25 +34,28 @@ is
    end Skew;
 
    procedure Split (Tree : in out Tree_Ptr) with
-      Pre  => Tree /= null and then Tree.Right /= null,
+      Pre  => Tree /= null,
       Post => Tree /= null
    is
       L : Tree_Ptr;
    begin
+      if
+        (Tree.Right = null or else Tree.Right.Right = null
+         or else Tree.Right.Right.Level = Tree.Level)
+      then
+         return;
+      end if;
+
       L          := Tree.Right;
       Tree.Right := L.Left;
       L.Left     := Tree;
 
+      --  Assume small enough trees for this example...
       pragma Assume (L.Level < Positive'Last);
       L.Level := L.Level + 1;
 
       Tree := L;
    end Split;
-
-   function Has_AATree_Prop (Tree : Tree_Ptr) return Boolean is
-     (Tree.Left = null or else Tree.Left.Level < Tree.Level) with
-      Pre => Tree /= null,
-      Ghost;
 
    procedure Insert (Tree : in out Tree_Ptr; Key : Integer) with
       Post => Tree /= null
@@ -66,17 +73,8 @@ is
          Insert (Tree.Right, Key);
       end if;
 
-      -- XXX: these checks should be part of Skew if possible
-      if Tree.Left /= null and then Tree.Left.Level = Tree.Level then
-         Skew (Tree);
-      end if;
-
-      -- XXX: these checks should be part of Split if possible
-      if Tree.Right /= null and then Tree.Right.Right /= null
-        and then Tree.Right.Right.Level = Tree.Level
-      then
-         Split (Tree);
-      end if;
+      Skew (Tree);
+      Split (Tree);
    end Insert;
 
    procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) with
