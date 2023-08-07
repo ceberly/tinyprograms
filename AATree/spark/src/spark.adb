@@ -41,7 +41,7 @@ is
    begin
       if
         (Tree.Right = null or else Tree.Right.Right = null
-         or else Tree.Right.Right.Level = Tree.Level)
+         or else Tree.Right.Right.Level /= Tree.Level)
       then
          return;
       end if;
