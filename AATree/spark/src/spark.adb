@@ -2,6 +2,7 @@ with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 
+with Ada.Unchecked_Deallocation;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 procedure Spark with
@@ -108,7 +109,26 @@ begin
       File      : Ada.Text_IO.File_Type;
       Input     : Integer;
 
-      Root : Tree_Ptr := null;
+      Root : Tree_Ptr;
+
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Object => AATree, Name => Tree_Ptr);
+
+      procedure Destroy_Tree (Tree : in out Tree_Ptr) with
+         Pre  => Tree /= null,
+         Post => Tree = null
+      is
+      begin
+         if Tree.Left /= null then
+            Destroy_Tree (Tree.Left);
+         end if;
+
+         if Tree.Right /= null then
+            Destroy_Tree (Tree.Right);
+         end if;
+
+         Free (Tree);
+      end Destroy_Tree;
    begin
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, File_Name);
       pragma Assert (Ada.Text_IO.Is_Open (File));
@@ -128,6 +148,7 @@ begin
       --  why?
       if Root /= null then
          Print (Root, To_Unbounded_String (""));
+         Destroy_Tree (Root);
       end if;
 
       Ada.Text_IO.Close (File);
