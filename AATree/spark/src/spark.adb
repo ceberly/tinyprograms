@@ -130,7 +130,7 @@ begin
       File      : Ada.Text_IO.File_Type;
       Input     : Integer;
 
-      Root : Node_Id := Nil;
+      Root : Tree_Ptr := null;
    begin
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, File_Name);
       pragma Assert (Ada.Text_IO.Is_Open (File));
