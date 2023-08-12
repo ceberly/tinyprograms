@@ -2,99 +2,120 @@ with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 
-with Ada.Unchecked_Deallocation;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 procedure Spark with
    SPARK_Mode => On
 is
-   type AATree;
-   type Tree_Ptr is access AATree;
-   type AATree is record
-      Key   : Integer;
-      Left  : Tree_Ptr;
-      Right : Tree_Ptr;
-      Level : Positive;
+   --  Allocate 1024 nodes up front.
+   type Node_Id is mod 2**10;
+
+   type AANode is record
+      Left, Right : Node_Id;
+      Key         : Integer;
+      Level       : Natural;
    end record;
 
-   procedure Skew (Tree : in out Tree_Ptr) with
-      Pre  => Tree /= null,
-      Post => Tree /= null
-   is
-      L : Tree_Ptr;
+   Nil : constant Node_Id := 0;
+
+--  Add the Nil to the store at location 0 so we don't have to do
+--  as many Nil checks.
+--  See https://www.cs.umd.edu/class/fall2019/cmsc420-0201/Lects/lect06-aa.pdf
+   Node_Store : array (Node_Id) of aliased AANode :=
+     (0 => AANode'(Nil, Nil, -1, 0), others => <>);
+
+   Next_Node_Id : Node_Id := 1;
+
+   procedure Skew (Tree : in out Node_Id) is
+      T : constant access AANode := Node_Store (Tree)'Access;
    begin
-      if Tree.Left = null or else Tree.Left.Level /= Tree.Level then
+      if T.Left = Nil then
          return;
       end if;
 
-      L         := Tree.Left;
-      Tree.Left := L.Right;
-      L.Right   := Tree;
+      declare
+         L           : constant access AANode := Node_Store (T.Left)'Access;
+         Prev_T_Left : constant Node_Id       := T.Left;
+      begin
+         if L.Level = T.Level then
+            T.Left  := L.Right;
+            L.Right := Tree;
 
-      Tree := L;
+            --   NOTE: this is really just the Node_Id of 'L'
+            Tree := Prev_T_Left;
+         end if;
+      end;
    end Skew;
 
-   procedure Split (Tree : in out Tree_Ptr) with
-      Pre  => Tree /= null,
-      Post => Tree /= null
-   is
-      L : Tree_Ptr;
+   procedure Split (Tree : in out Node_Id) is
+      T : constant access AANode := Node_Store (Tree)'Access;
    begin
-      if
-        (Tree.Right = null or else Tree.Right.Right = null
-         or else Tree.Right.Right.Level /= Tree.Level)
-      then
+      if T.Right = Nil then
          return;
       end if;
 
-      L          := Tree.Right;
-      Tree.Right := L.Left;
-      L.Left     := Tree;
+      declare
+         R            : constant access AANode := Node_Store (T.Right)'Access;
+         RR           : constant access AANode := Node_Store (R.Right)'Access;
+         Prev_T_Right : constant Node_Id       := T.Right;
+      begin
+         if R.Right = Nil or else RR.Level /= T.Level then
+            return;
+         end if;
 
-      --  Assume small enough trees for this example...
-      pragma Assume (L.Level < Positive'Last);
-      L.Level := L.Level + 1;
+         T.Right := R.Left;
+         R.Left  := Tree;
 
-      Tree := L;
+         --  Assume small enough trees for this example...
+         pragma Assume (R.Level < Positive'Last);
+         R.Level := R.Level + 1;
+
+         Tree := Prev_T_Right;
+      end;
    end Split;
 
-   procedure Insert (Tree : in out Tree_Ptr; Key : Integer) with
-      Post => Tree /= null
-   is
+   procedure Insert (Tree : in out Node_Id; Key : Integer) is
    begin
-      if Tree = null then
-         Tree :=
-           new AATree'(Key => Key, Left => null, Right => null, Level => 1);
+      if Tree = Nil then
+         Node_Store (Next_Node_Id) :=
+           AANode'(Key => Key, Left => Nil, Right => Nil, Level => 1);
+
+         Tree         := Next_Node_Id;
+         Next_Node_Id := Next_Node_Id + 1;
+
          return;
       end if;
 
-      if Key < Tree.Key then
-         Insert (Tree.Left, Key);
-      else
-         Insert (Tree.Right, Key);
-      end if;
+      declare
+         T : constant access AANode := Node_Store (Tree)'Access;
+      begin
+         if Key < T.Key then
+            Insert (T.Left, Key);
+         else
+            Insert (T.Right, Key);
+         end if;
+      end;
 
       Skew (Tree);
       Split (Tree);
    end Insert;
 
-   procedure Print (Tree : Tree_Ptr; Space : Unbounded_String) with
-      Pre => Tree /= null
-   is
+   procedure Print (Tree : Node_Id; Space : Unbounded_String) is
+      T : constant access constant AANode := Node_Store (Tree)'Access;
    begin
-      if Natural'Last - Length (Space) - 2 - Tree.Key'Image'Length < 0 then
+      if Natural'Last - Length (Space) - 2 - T.Key'Image'Length < 0 then
          Put_Line ("Tree overflow!");
          return;
       end if;
 
-      if Tree.Left /= null then
-         Print (Tree.Left, Space & "  ");
+      if T.Left /= Nil then
+         Print (T.Left, Space & "  ");
       end if;
 
-      Put_Line (To_String (Space & Tree.Key'Image));
+      Put_Line (To_String (Space & T.Key'Image));
 
-      if Tree.Right /= null then
-         Print (Tree.Right, Space & "  ");
+      if T.Right /= Nil then
+         Print (T.Right, Space & "  ");
       end if;
    end Print;
 
@@ -109,26 +130,7 @@ begin
       File      : Ada.Text_IO.File_Type;
       Input     : Integer;
 
-      Root : Tree_Ptr;
-
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Object => AATree, Name => Tree_Ptr);
-
-      procedure Destroy_Tree (Tree : in out Tree_Ptr) with
-         Pre  => Tree /= null,
-         Post => Tree = null
-      is
-      begin
-         if Tree.Left /= null then
-            Destroy_Tree (Tree.Left);
-         end if;
-
-         if Tree.Right /= null then
-            Destroy_Tree (Tree.Right);
-         end if;
-
-         Free (Tree);
-      end Destroy_Tree;
+      Root : Node_Id := Nil;
    begin
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, File_Name);
       pragma Assert (Ada.Text_IO.Is_Open (File));
@@ -138,17 +140,16 @@ begin
 
          Insert (Root, Input);
 
-         if Positive'Last - Root.Level = 0 then
-            Put_Line ("Tree overflow!");
-            return;
-         end if;
+         --  if Positive'Last - Root.Level = 0 then
+         --     Put_Line ("Tree overflow!");
+         --     return;
+         --  end if;
       end loop;
 
       --  'warning: "Root" is set by "Print" but not used after the call'
       --  why?
-      if Root /= null then
+      if Root /= Nil then
          Print (Root, To_Unbounded_String (""));
-         Destroy_Tree (Root);
       end if;
 
       Ada.Text_IO.Close (File);
